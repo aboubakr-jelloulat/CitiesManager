@@ -1,0 +1,32 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.vs/
+
+
+# Build artifacts
+bin/
+obj/
+out/
+dist/
+
+# Dependencies
+packages/
+.nuget/
+
+# Environment and secrets
+.env
+.env.*
+secrets/
+
+# OS files
+
+*.log
+
+# Documentation
+*.md
+!README.md
