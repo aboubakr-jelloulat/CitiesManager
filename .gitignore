@@ -34,6 +34,9 @@ secrets/
 *.log
 *.swp
 
+*.user
+*.csproj.user
+
 # Documentation
 *.md
 !README.md
