@@ -1,37 +1,43 @@
-# Stage 1: base runtime
+# base runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
+EXPOSE 8081
 
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
+RUN groupadd --system appgroup && \
+    useradd --system --gid appgroup --no-create-home appuser
+
 USER appuser
 
-# Stage 2: restore (cached layer)
+# restore : Package Download
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
 WORKDIR /src
-COPY CitiesManager.Web.csproj .
-RUN dotnet restore "CitiesManager.Web.csproj"
+COPY CitiesManager.API.csproj .
+RUN dotnet restore "CitiesManager.API.csproj"
 
-# Stage 3: build
+# build
 FROM restore AS build
 ARG BUILD_CONFIGURATION=Release
 COPY . .
-RUN dotnet build "CitiesManager.Web.csproj" \
+RUN dotnet build "CitiesManager.API.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/build \
     --no-restore
 
-# Stage 4: publish
+# publish
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "CitiesManager.Web.csproj" \
+RUN dotnet publish "CitiesManager.API.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
     --no-restore \
     /p:UseAppHost=false
 
-# Stage 5: final
+# final
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "CitiesManager.Web.dll"]
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "CitiesManager.API.dll"]
