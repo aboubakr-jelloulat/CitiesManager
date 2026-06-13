@@ -1,43 +1,25 @@
-# base runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+# Use SDK for development (no multi-stage needed for local dev)
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
 WORKDIR /app
+
+# Install EF Core tools
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Copy all project files (they are accessible because context is ./app)
+COPY CitiesManager.API/ CitiesManager.API/
+COPY CitiesManager.Domain/ CitiesManager.Domain/
+COPY CitiesManager.Infrastructure/ CitiesManager.Infrastructure/
+
+# Restore all dependencies
+RUN dotnet restore CitiesManager.API/CitiesManager.API.csproj
+
 EXPOSE 8080
 EXPOSE 8081
 
-
-RUN groupadd --system appgroup && \
-    useradd --system --gid appgroup --no-create-home appuser
-
-USER appuser
-
-# restore : Package Download
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
-WORKDIR /src
-COPY CitiesManager.API.csproj .
-RUN dotnet restore "CitiesManager.API.csproj"
-
-# build
-FROM restore AS build
-ARG BUILD_CONFIGURATION=Release
-COPY . .
-RUN dotnet build "CitiesManager.API.csproj" \
-    -c $BUILD_CONFIGURATION \
-    -o /app/build \
-    --no-restore
-
-# publish
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "CitiesManager.API.csproj" \
-    -c $BUILD_CONFIGURATION \
-    -o /app/publish \
-    --no-restore \
-    /p:UseAppHost=false
-
-# final
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
 ENV ASPNETCORE_ENVIRONMENT=Development
 ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT ["dotnet", "CitiesManager.API.dll"]
+
+# Run with hot reload for development
+CMD ["dotnet", "watch", "run", "--project", "CitiesManager.API/CitiesManager.API.csproj", "--urls", "http://0.0.0.0:8080"]
